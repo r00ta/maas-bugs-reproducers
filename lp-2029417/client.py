@@ -1,3 +1,5 @@
+import time
+
 from twisted.internet import reactor, protocol
 from twisted.internet.task import LoopingCall
 
@@ -13,8 +15,6 @@ def execute_ping(session):
         print(
             "Failure on ping dropping connection"
         )
-        # The protocol will call `remove_connection on the
-        # `ClusterClientService` that will perform the reconnection.
         session.transport.loseConnection()
 
     deferWithTimeout(10, session.callRemote, Ping).addErrback(_onFailure)
@@ -45,6 +45,8 @@ class MyAMPClientProtocol(RPCProtocol):
 
     @Pippo.responder
     def say_hello(self):
+        print("HELLOOOO")
+        time.sleep(10)
         return {'result': "Hello Pippo"}
 
 

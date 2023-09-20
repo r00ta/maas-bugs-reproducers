@@ -9,9 +9,10 @@ print(f"Event loop implementation: {str(type(asyncio.get_event_loop_policy()))}"
 
 from twisted.internet.task import LoopingCall
 
-from models import Sum, Pippo
+from models import Sum, Pippo, Client
 from rpc import RPCProtocol
-
+from twisted.internet.endpoints import TCP6ServerEndpoint
+from utils import deferWithTimeout
 
 class SessionManager:
     def __init__(self):
@@ -34,16 +35,17 @@ def print_pippo_response(response):
     print("Received response for 'Pippo' command:", response)
 
 
-def execute_pippo(session):
-    if session:
-        # choice = input("USE DEFERREDTIMEOUT?")
-        # if choice == "y":
-        #     deferWithTimeout(
-        #         20, session.callRemote, Pippo
-        #     ).addCallback(print_pippo_response).addErrback(lambda x: print("error deferred"))
-        # else:
+def execute_pippo(client):
+    if client:
         print("+ calling Pippo RPC procedure")
-        session.callRemote(Pippo).addCallback(print_pippo_response).addErrback(lambda x: print("error"))
+        # try:
+        client(Pippo).addCallback(print_pippo_response)
+        # deferWithTimeout(
+        #     5, session.callRemote, Pippo
+        # ).addCallback(print_pippo_response)
+        # except Exception as e:
+        #     print("CATCHED " + str(e))
+        # session.callRemote(Pippo).addCallback(print_pippo_response).addErrback(lambda x: print("error"))
     else:
         print("NO CONNECTIONS AVAILABLE")
 
@@ -73,13 +75,14 @@ def main():
 
     def on_connection():
         session = Math(session_manager)
-        session_manager.add(session)
+        session_manager.add(Client(session))
         return session
 
     math_factory = Factory()
     math_factory.protocol = on_connection
 
-    reactor.listenTCP(1234, math_factory)
+    endpoint = TCP6ServerEndpoint(reactor, 1234)
+    endpoint.listen(math_factory)
 
     def execute():
         try:
